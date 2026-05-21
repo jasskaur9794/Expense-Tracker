@@ -168,9 +168,41 @@ const getOtpTemplate = (userName, otp, purpose) => {
 };
 
 /**
- * Send an OTP verification email using SMTP
+ * Send an OTP verification email using Resend API (HTTP) or standard SMTP fallback
  */
 const sendOtpEmail = async ({ email, name, otp, purpose }) => {
+  // If RESEND_API_KEY is configured, use HTTP-based Resend API (works perfectly on Render Free Tier!)
+  if (process.env.RESEND_API_KEY) {
+    try {
+      console.log('RESEND_API_KEY detected. Sending email via Resend HTTP API...');
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'Expensify Finance <onboarding@resend.dev>',
+          to: email,
+          subject: `[Expensify] ${otp} is your verification code`,
+          html: getOtpTemplate(name, otp, purpose),
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Resend API error: ${errText}`);
+      }
+
+      const data = await response.json();
+      console.log('Resend HTTP Email sent successfully:', data.id);
+      return data;
+    } catch (resendError) {
+      console.error('Failed to send email via Resend API, falling back to SMTP:', resendError.message);
+    }
+  }
+
+  // Fallback to standard SMTP (Gmail/Nodemailer)
   const smtpUser = (process.env.SMTP_USER || '').replace(/^['"]|['"]$/g, '');
   const smtpPass = (process.env.SMTP_PASS || '').replace(/^['"]|['"]$/g, '');
 
@@ -192,7 +224,7 @@ const sendOtpEmail = async ({ email, name, otp, purpose }) => {
   };
 
   const info = await transporter.sendMail(mailOptions);
-  console.log('OTP Email sent successfully: %s', info.messageId);
+  console.log('SMTP OTP Email sent successfully: %s', info.messageId);
   return info;
 };
 

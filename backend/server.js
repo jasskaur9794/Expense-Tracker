@@ -21,6 +21,9 @@ connectDB();
 
 const app = express();
 
+// Trust proxy for rate limiting behind Render/Heroku reverse proxies
+app.set('trust proxy', 1);
+
 // Security Middlewares
 app.use(
   helmet({

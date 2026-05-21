@@ -171,18 +171,21 @@ const getOtpTemplate = (userName, otp, purpose) => {
  * Send an OTP verification email using SMTP
  */
 const sendOtpEmail = async ({ email, name, otp, purpose }) => {
+  const smtpUser = (process.env.SMTP_USER || '').replace(/^['"]|['"]$/g, '');
+  const smtpPass = (process.env.SMTP_PASS || '').replace(/^['"]|['"]$/g, '');
+
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT || '587', 10),
     secure: false, // true for 465, false for other ports
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      user: smtpUser,
+      pass: smtpPass,
     },
   });
 
   const mailOptions = {
-    from: `"Expensify Finance" <${process.env.SMTP_USER}>`,
+    from: `"Expensify Finance" <${smtpUser}>`,
     to: email,
     subject: `[Expensify] ${otp} is your verification code`,
     html: getOtpTemplate(name, otp, purpose),

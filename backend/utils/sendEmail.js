@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const https = require('https');
 
 /**
  * Helper to generate a highly-polished HTML email template for OTPs
@@ -171,32 +172,67 @@ const getOtpTemplate = (userName, otp, purpose) => {
  * Send an OTP verification email using Resend API (HTTP) or standard SMTP fallback
  */
 const sendOtpEmail = async ({ email, name, otp, purpose }) => {
-  // If RESEND_API_KEY is configured, use HTTP-based Resend API (works perfectly on Render Free Tier!)
-  if (process.env.RESEND_API_KEY) {
+  // Sanitize the API key by stripping literal quotation marks and spaces
+  const resendApiKey = (process.env.RESEND_API_KEY || '').replace(/^['"]|['"]$/g, '').trim();
+
+  if (resendApiKey) {
     try {
-      console.log('RESEND_API_KEY detected. Sending email via Resend HTTP API...');
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: 'Expensify Finance <onboarding@resend.dev>',
-          to: email,
-          subject: `[Expensify] ${otp} is your verification code`,
-          html: getOtpTemplate(name, otp, purpose),
-        }),
+      const maskedKey = resendApiKey.length > 8 
+        ? `${resendApiKey.substring(0, 5)}...${resendApiKey.substring(resendApiKey.length - 4)}` 
+        : 'invalid-key-length';
+      console.log(`[Resend API] Attempting to send email. Sanitized Key: ${maskedKey}. Recipient: ${email}`);
+
+      const requestBody = JSON.stringify({
+        from: 'Expensify Finance <onboarding@resend.dev>',
+        to: email,
+        subject: `[Expensify] ${otp} is your verification code`,
+        html: getOtpTemplate(name, otp, purpose),
       });
 
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Resend API error: ${errText}`);
-      }
+      const options = {
+        hostname: 'api.resend.com',
+        port: 443,
+        path: '/emails',
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(requestBody),
+        },
+      };
 
-      const data = await response.json();
-      console.log('Resend HTTP Email sent successfully:', data.id);
-      return data;
+      const result = await new Promise((resolve, reject) => {
+        const req = https.request(options, (res) => {
+          let responseData = '';
+          res.on('data', (chunk) => {
+            responseData += chunk;
+          });
+          res.on('end', () => {
+            resolve({
+              statusCode: res.statusCode,
+              body: responseData,
+            });
+          });
+        });
+
+        req.on('error', (err) => {
+          reject(err);
+        });
+
+        req.write(requestBody);
+        req.end();
+      });
+
+      console.log(`[Resend API] Response Status Code: ${result.statusCode}`);
+      console.log(`[Resend API] Response Body: ${result.body}`);
+
+      if (result.statusCode >= 200 && result.statusCode < 300) {
+        const data = JSON.parse(result.body);
+        console.log('Resend HTTP Email sent successfully:', data.id);
+        return data;
+      } else {
+        throw new Error(`Resend API returned status ${result.statusCode}: ${result.body}`);
+      }
     } catch (resendError) {
       console.error('Failed to send email via Resend API, falling back to SMTP:', resendError.message);
     }

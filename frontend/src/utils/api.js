@@ -1,7 +1,19 @@
 import axios from 'axios';
 
+const getBaseURL = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  // In production (served together), call the same host's /api
+  if (import.meta.env.PROD) {
+    return '/api';
+  }
+  // Local development fallback
+  return 'http://localhost:5001/api';
+};
+
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5001/api',
+  baseURL: getBaseURL(),
   withCredentials: true, // critical for receiving and sending http-only cookies
   headers: {
     'Content-Type': 'application/json',

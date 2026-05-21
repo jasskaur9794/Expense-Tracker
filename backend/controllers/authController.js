@@ -72,8 +72,15 @@ exports.registerUser = async (req, res, next) => {
         otp,
         purpose: 'Create Your Expensify Account',
       });
+      console.log(`[OTP Sent] Email sent successfully with code ${otp} to ${user.email}`);
     } catch (mailError) {
       console.error('Registration OTP email sending failed:', mailError.message);
+      console.log(`\n==================================================`);
+      console.log(`[RENDER FREE TIER SMTP BYPASS]`);
+      console.log(`Since Render Free Tier blocks outgoing SMTP ports (587),`);
+      console.log(`you can copy your OTP directly from here:`);
+      console.log(`OTP Code for ${user.email} is: ${otp}`);
+      console.log(`==================================================\n`);
     }
 
     res.status(201).json({
@@ -142,12 +149,24 @@ exports.resendRegistrationOtp = async (req, res, next) => {
     user.otpExpire = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    await sendOtpEmail({
-      email: user.email,
-      name: user.name,
-      otp,
-      purpose: 'Create Your Expensify Account (Resend)',
-    });
+    // Send OTP verification email
+    try {
+      await sendOtpEmail({
+        email: user.email,
+        name: user.name,
+        otp,
+        purpose: 'Create Your Expensify Account (Resend)',
+      });
+      console.log(`[OTP Sent] Email sent successfully with code ${otp} to ${user.email}`);
+    } catch (mailError) {
+      console.error('Resend OTP email sending failed:', mailError.message);
+      console.log(`\n==================================================`);
+      console.log(`[RENDER FREE TIER SMTP BYPASS]`);
+      console.log(`Since Render Free Tier blocks outgoing SMTP ports (587),`);
+      console.log(`you can copy your OTP directly from here:`);
+      console.log(`OTP Code for ${user.email} is: ${otp}`);
+      console.log(`==================================================\n`);
+    }
 
     res.status(200).json({
       success: true,
@@ -191,8 +210,15 @@ exports.loginUser = async (req, res, next) => {
           otp,
           purpose: 'Verify Your Expensify Account',
         });
+        console.log(`[OTP Sent] Email sent successfully with code ${otp} to ${user.email}`);
       } catch (err) {
         console.error('Resending verification email failed:', err.message);
+        console.log(`\n==================================================`);
+        console.log(`[RENDER FREE TIER SMTP BYPASS]`);
+        console.log(`Since Render Free Tier blocks outgoing SMTP ports (587),`);
+        console.log(`you can copy your OTP directly from here:`);
+        console.log(`OTP Code for ${user.email} is: ${otp}`);
+        console.log(`==================================================\n`);
       }
 
       return res.status(403).json({
@@ -217,8 +243,15 @@ exports.loginUser = async (req, res, next) => {
           otp,
           purpose: 'Secure 2FA Account Access',
         });
+        console.log(`[OTP Sent] Email sent successfully with code ${otp} to ${user.email}`);
       } catch (err) {
         console.error('2FA login email failed:', err.message);
+        console.log(`\n==================================================`);
+        console.log(`[RENDER FREE TIER SMTP BYPASS]`);
+        console.log(`Since Render Free Tier blocks outgoing SMTP ports (587),`);
+        console.log(`you can copy your OTP directly from here:`);
+        console.log(`OTP Code for ${user.email} is: ${otp}`);
+        console.log(`==================================================\n`);
       }
 
       return res.status(200).json({
@@ -280,12 +313,23 @@ exports.request2FAToggle = async (req, res, next) => {
     user.tempOtpExpire = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    await sendOtpEmail({
-      email: user.email,
-      name: user.name,
-      otp,
-      purpose: `${action} Two-Factor Authentication`,
-    });
+    try {
+      await sendOtpEmail({
+        email: user.email,
+        name: user.name,
+        otp,
+        purpose: `${action} Two-Factor Authentication`,
+      });
+      console.log(`[OTP Sent] Email sent successfully with code ${otp} to ${user.email}`);
+    } catch (mailError) {
+      console.error('2FA Request OTP email sending failed:', mailError.message);
+      console.log(`\n==================================================`);
+      console.log(`[RENDER FREE TIER SMTP BYPASS]`);
+      console.log(`Since Render Free Tier blocks outgoing SMTP ports (587),`);
+      console.log(`you can copy your OTP directly from here:`);
+      console.log(`OTP Code for ${user.email} is: ${otp}`);
+      console.log(`==================================================\n`);
+    }
 
     res.status(200).json({
       success: true,
@@ -469,12 +513,23 @@ exports.requestPasswordOtp = async (req, res, next) => {
     user.tempOtpExpire = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    await sendOtpEmail({
-      email: user.email,
-      name: user.name,
-      otp,
-      purpose: 'Change Account Password',
-    });
+    try {
+      await sendOtpEmail({
+        email: user.email,
+        name: user.name,
+        otp,
+        purpose: 'Change Account Password',
+      });
+      console.log(`[OTP Sent] Email sent successfully with code ${otp} to ${user.email}`);
+    } catch (mailError) {
+      console.error('Password Request OTP email sending failed:', mailError.message);
+      console.log(`\n==================================================`);
+      console.log(`[RENDER FREE TIER SMTP BYPASS]`);
+      console.log(`Since Render Free Tier blocks outgoing SMTP ports (587),`);
+      console.log(`you can copy your OTP directly from here:`);
+      console.log(`OTP Code for ${user.email} is: ${otp}`);
+      console.log(`==================================================\n`);
+    }
 
     res.status(200).json({
       success: true,

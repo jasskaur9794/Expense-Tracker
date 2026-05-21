@@ -62,10 +62,21 @@ app.use('/api/income', incomeRoutes);
 app.use('/api/budget', budgetRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
-// Base route
-app.get('/', (req, res) => {
-  res.status(200).json({ success: true, message: 'MERN Expense Tracker API is running...' });
-});
+// Serve static assets in production (Serve React frontend)
+if (process.env.NODE_ENV === 'production') {
+  // Set static folder
+  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+  // Any GET route that is not an API route should serve index.html
+  app.get('*', (req, res) => {
+    res.sendFile(path.resolve(__dirname, '../frontend', 'dist', 'index.html'));
+  });
+} else {
+  // Base route for development/API testing
+  app.get('/', (req, res) => {
+    res.status(200).json({ success: true, message: 'MERN Expense Tracker API is running...' });
+  });
+}
 
 // Centralized error handler middleware
 app.use(errorHandler);
